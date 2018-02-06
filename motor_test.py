@@ -1,7 +1,7 @@
 import Adafruit_BBIO.GPIO as GPIO
 import time
 def motor_test(en,dir,step):
- delay = .000001
+ delay = .0000001
  GPIO.setup(en, GPIO.OUT)
  GPIO.setup(dir, GPIO.OUT)
  GPIO.setup(step, GPIO.OUT)
@@ -19,4 +19,5 @@ def motor_test(en,dir,step):
     time.sleep(delay)
     GPIO.output(step, GPIO.LOW)
     time.sleep(delay)
- GPIO.cleanup()
+
+ GPIO.output(en,GPIO.HIGH)
