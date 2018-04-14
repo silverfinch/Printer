@@ -12,8 +12,9 @@ from Infill import ArcLine
 currentZ = 0
 zIncrement = 0.000001
 my_mesh = mesh.Mesh.from_file('cube.stl')
-LINEWIDTH = .5
+LINEWIDTH = 1
 n=6
+NOZZLEFRONT = 1.22
 
 xmin = -8.
 xmax = 8.
@@ -50,14 +51,21 @@ except NameError as e:
 	print('Object does not exist at this elevation')
 	sys.exit()
 
-infill_path = Infill.infill(contours,'solid',LINEWIDTH,n)
+infill_path = Infill.infill(contours,'solid',LINEWIDTH,n,NOZZLEFRONT)
 figure = pyplot.figure()
 ax = figure.add_subplot(111)
 ax.set_xlim([xmin,xmax])
 ax.set_ylim([ymin,ymax])
 
-print(len(infill_path))
+new_infill = []
 for obj in infill_path:
+	if obj.isExtruding:
+		new_infill.append(obj)
+for obj in infill_path:
+	if not obj.isExtruding:
+		new_infill.append(obj)# reorders all extruding segments to come first
+
+for obj in new_infill:
 	if obj.index == 0:
 		c = (0,0,0)
 	elif obj.index == 1:
@@ -75,15 +83,20 @@ for obj in infill_path:
 	else:
 		c = (0.5,0.5,0.5)
 
+	if obj.isExtruding:
+		style = 'solid'
+	else:
+		style = 'solid'
+
 	if obj.type == 'line':
 		#print('line')
 		x = [obj.startPoint.X,obj.endPoint.X]
 		y = [obj.startPoint.Y,obj.endPoint.Y]
-		line = Line2D(x,y,color=c,linewidth=8,solid_capstyle='round')
+		line = Line2D(x,y,color=c,linewidth=16,solid_capstyle='round',linestyle = style)
 		ax.add_line(line)
 	elif obj.type == 'arc':
 		#print('arc')
-		arc = Arc(obj.hk,2*obj.r,2*obj.r,angle = 0,theta1 = obj.theta1,theta2 = obj.theta2,fill=False,color=c,linewidth=8)
+		arc = Arc(obj.hk,2*obj.r,2*obj.r,angle = 0,theta1 = obj.theta1,theta2 = obj.theta2,fill=False,color=c,linewidth=16,linestyle=style)
 		ax.add_patch(arc)
 
 pyplot.show()

@@ -11,9 +11,9 @@ import sys
 
 dontOrder = 0
 showNormals = 0
-currentZ = 0
+currentZ = 35
 zIncrement = 0.000001
-my_mesh = mesh.Mesh.from_file('cube.stl')
+my_mesh = mesh.Mesh.from_file('Tony_Tony_Chopper.stl')
 scale = 1
 my_mesh.x, my_mesh.y, my_mesh.z = my_mesh.x*scale, my_mesh.y*scale, my_mesh.z*scale
 LINEWIDTH = .05
@@ -164,8 +164,8 @@ else:
 	figure = pyplot.figure()
 #	axes.set_zlim3d(0,1)
 	ax = figure.add_subplot(111)
-	e1 = Arc((0,0),1,1,angle=0,theta1=0,theta2=90,fill=False)
-	ax.add_patch(e1)
+#	e1 = Arc((0,0),1,1,angle=0,theta1=0,theta2=90,fill=False)
+#	ax.add_patch(e1)
 	for i in range(0,totalLines):
 		pyplot.quiver(X[i],Y[i],U[i],V[i],scale=1,angles='xy', scale_units='xy')#,arrow_length_ratio=0.01/lengths[i],colors=color[i])
 	print(len(contours))
