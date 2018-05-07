@@ -103,11 +103,10 @@ class SliceLine:
 		return []
 
 class Point:
-	def __init__(self,X,Y,Z,atBorder=False):
+	def __init__(self,X,Y,Z):
 		self.X = X
 		self.Y = Y
 		self.Z = Z
-		self.atBorder = atBorder
 
 	def __hash__(self):
 		return hash(self.X) + hash(self.Y) + hash(self.Z)
@@ -429,13 +428,34 @@ class closedContour:
 						self.lines[i].endPoint.X = self.lines[i].startPoint.X + vector[0]
 						self.lines[i].endPoint.Y = self.lines[i].startPoint.Y + vector[1]
 			i-=1
+		#now join the lines left
+#		i = len(self.lines)-1
+#		while i>=0:
+#			index = None
+#			j = i-1
+#			while (j>=1) or (j>=0 and i<len(self.lines)-1):
+#				if self.lines[j].intersectsWith(self.lines[i]) is not None:#if lines intersect
+#					index = j
+#				j -= 1
+#			if index is not None:
+#				[x,y] = self.lines[index].intersectsWith(self.lines[i])
+#				self.lines[index].endPoint.X = x#connect the lines
+#				self.lines[index].endPoint.Y = y
+#				self.lines[i].startPoint.X = x
+#				self.lines[i].startPoint.Y = y
+#				print('poop')
+#				print(i)
+#				print(index+1)
+#				del self.lines[index+1:i]#delete all lines between
+#				i = index#move index past lines just completed
+#			i -= 1
 
 def findHoles(contours):
+	maxR = []
 	currentLevel = 0
 	count = 0
 	while(count < len(contours)):
 		queue = []
-		maxR = []
 		for contour in contours:
 			if contour.level == currentLevel:
 				queue.append(contour)

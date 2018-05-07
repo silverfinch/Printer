@@ -1,3 +1,4 @@
+import pyclipper
 import copy
 import math
 import SlicerGeometries
@@ -11,9 +12,9 @@ import sys
 
 dontOrder = 0
 showNormals = 0
-currentZ = 35
+currentZ = .01
 zIncrement = 0.000001
-my_mesh = mesh.Mesh.from_file('Tony_Tony_Chopper.stl')
+my_mesh = mesh.Mesh.from_file('Cube_and_ball.stl')
 scale = 1
 my_mesh.x, my_mesh.y, my_mesh.z = my_mesh.x*scale, my_mesh.y*scale, my_mesh.z*scale
 LINEWIDTH = .05
@@ -85,7 +86,7 @@ else:
 	color = []
 	try:
 		for contour in contours:
-			print('Contour')
+			print(len(contour.lines))
 	except NameError as e:
 		print('Object does not exist at this elevation')
 		sys.exit()
@@ -98,6 +99,8 @@ else:
 		otherContours = copy.deepcopy(contours)
 		contour = otherContours.pop(i)
 		a = contour.makeShell(otherContours,LINEWIDTH,1)
+#		for boo in range(0,4):
+#			a = a.makeShell(otherContours,LINEWIDTH,1)
 		if a!=0:
 			shells.append(a)
 	for contour in shells:
@@ -124,6 +127,38 @@ else:
 			i-=1
 
 #	contours.extend(shells)
+#	print(len(contours))
+
+#	algorithm to determine which contours are holes
+	SlicerGeometries.findHoles(contours)
+#	for contour in contours:
+#		print(contour.level)
+#		print("done")
+
+	for i in range(0,len(contours)):
+		contour = contours[i]
+		vertices = []
+		new_lines = []
+		for line in contour.lines:
+			vertices.append((line.startPoint.X,line.startPoint.Y))
+		vertices = tuple(vertices)
+#		print(len(vertices))
+		pco = pyclipper.PyclipperOffset()
+		pco.AddPath(pyclipper.scale_to_clipper(vertices,2**31), pyclipper.JT_MITER, pyclipper.ET_CLOSEDPOLYGON)
+		offset = pyclipper.scale_to_clipper(LINEWIDTH,2**31)
+		if contour.level%2==0:
+			new_vertices = pyclipper.scale_from_clipper(pco.Execute(-offset),2**31)
+		else:
+			new_vertices = pyclipper.scale_from_clipper(pco.Execute(offset),2**31)
+		new_vertices = new_vertices[0]
+		for i in range(0,len(new_vertices)):
+#			print(len(new_vertices))
+			if i==len(new_vertices)-1:
+				new_lines.append(SlicerGeometries.SliceLine([[new_vertices[len(new_vertices)-1][0],new_vertices[len(new_vertices)-1][1],currentZ],[new_vertices[0][0],new_vertices[0][1],currentZ]],numpy.array([0,0,0])))
+			else:
+				new_lines.append(SlicerGeometries.SliceLine([[new_vertices[i][0],new_vertices[i][1],currentZ],[new_vertices[i+1][0],new_vertices[i+1][1],currentZ]],numpy.array([0,0,0])))
+		contours.append(SlicerGeometries.closedContour(new_lines,1))
+
 	for contour in contours:
 		if contour.shellLevel > 0:# for shell vectors
 			for line in contour.lines:
@@ -134,7 +169,7 @@ else:
 				V.append(line.endPoint.Y-line.startPoint.Y)
 				W.append(line.endPoint.Z-line.startPoint.Z)
 				lengths.append(line.magnitude())
-				color.append((0,0,1))
+				color.append('b')
 				totalLines += 1
 		else:
 			for line in contour.lines:
@@ -146,8 +181,9 @@ else:
 				V.append(line.endPoint.Y-line.startPoint.Y)
 				W.append(line.endPoint.Z-line.startPoint.Z)
 				lengths.append(line.magnitude())
-				color.append((0,1,0))
+				color.append('g')
 				totalLines += 1
+#		print('pooped em')
 	if showNormals:
 		for contour in contours:
 			for line in contour.lines:
@@ -159,15 +195,16 @@ else:
 				V.append(line.normal[1])
 				W.append(line.normal[2])
 				lengths.append(numpy.linalg.norm(line.normal))
-				color.append((1,0,0))
+				color.append('r')
 				totalLines +=1
 	figure = pyplot.figure()
 #	axes.set_zlim3d(0,1)
 	ax = figure.add_subplot(111)
 #	e1 = Arc((0,0),1,1,angle=0,theta1=0,theta2=90,fill=False)
 #	ax.add_patch(e1)
+	print(totalLines)
 	for i in range(0,totalLines):
-		pyplot.quiver(X[i],Y[i],U[i],V[i],scale=1,angles='xy', scale_units='xy')#,arrow_length_ratio=0.01/lengths[i],colors=color[i])
+		pyplot.quiver(X[i],Y[i],U[i],V[i],scale=1,angles='xy', scale_units='xy', headwidth=1.5, color=color[i])#,arrow_length_ratio=0.01/lengths[i],colors=color[i])
 	print(len(contours))
 #	print(contours[1].isInside(contours[0]))
 #	print(len(contours[0].lines))

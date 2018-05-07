@@ -103,11 +103,10 @@ class SliceLine:
 		return []
 
 class Point:
-	def __init__(self,X,Y,Z,atBorder=False):
+	def __init__(self,X,Y,Z):
 		self.X = X
 		self.Y = Y
 		self.Z = Z
-		self.atBorder = atBorder
 
 	def __hash__(self):
 		return hash(self.X) + hash(self.Y) + hash(self.Z)
@@ -408,46 +407,3 @@ class closedContour:
 	def trimShell(self,baseContour,LINEWIDTH):
 		i = len(self.lines)-1
 		while i>=0:# delete lines too close to base contour
-			for contourLine in baseContour.lines:
-				print('line')
-				vector = np.array([self.lines[i].endPoint.X-self.lines[i].startPoint.X,self.lines[i].endPoint.Y-self.lines[i].startPoint.Y])
-				a = contourLine.distToPoint(self.lines[i].startPoint)
-				b = contourLine.distToPoint(self.lines[i].endPoint)
-				if (a < LINEWIDTH*0.5) and (b < LINEWIDTH*0.5):
-					print(contourLine.distToPoint(self.lines[i].startPoint))
-					del self.lines[i]
-					break
-				else:
-					if a < LINEWIDTH*0.5:#shortens line from startPoint, withdrawing to safe distance
-						unit = np.divide(vector,np.linalg.norm(vector))
-						vector = np.multiply(unit,np.linalg.norm(vector)-(LINEWIDTH-a))
-						self.lines[i].startPoint.X = self.lines[i].endPoint.X - vector[0]
-						self.lines[i].startPoint.Y = self.lines[i].endPoint.Y - vector[1]
-					elif b < LINEWIDTH*0.5:#shortens line from endPoint, withdrawing to safe distance
-						unit = np.divide(vector,np.linalg.norm(vector))
-						vector = np.multiply(unit,np.linalg.norm(vector)-(LINEWIDTH-b))
-						self.lines[i].endPoint.X = self.lines[i].startPoint.X + vector[0]
-						self.lines[i].endPoint.Y = self.lines[i].startPoint.Y + vector[1]
-			i-=1
-
-def findHoles(contours):
-	currentLevel = 0
-	count = 0
-	while(count < len(contours)):
-		queue = []
-		maxR = []
-		for contour in contours:
-			if contour.level == currentLevel:
-				queue.append(contour)
-				maxR.append(contour.maxR)
-		if len(queue)==1:
-			currentLevel += 1
-			count += 1
-			break
-		currentMax = np.argmax(maxR)
-		del maxR[currentMax]
-		currentContour = queue.pop(currentMax)
-		for contour in queue:
-			if contour.isInside(currentContour):
-				contour.level = currentLevel+1
-		count += 1

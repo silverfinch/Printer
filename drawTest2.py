@@ -9,12 +9,19 @@ import Infill
 from Infill import Line
 from Infill import ArcLine
 
-currentZ = 0
+currentZ = 5
 zIncrement = 0.000001
-my_mesh = mesh.Mesh.from_file('cube.stl')
+my_mesh = mesh.Mesh.from_file('Cube_and_ball.stl')
 LINEWIDTH = 1
 n=6
+scale = 10
 NOZZLEFRONT = 1.22
+my_mesh.x += -1.25#100
+my_mesh.y += -1.25#-75
+my_mesh.z += 0#-20
+my_mesh.x = my_mesh.x*scale
+my_mesh.y = my_mesh.y*scale
+my_mesh.z = my_mesh.z*scale
 
 xmin = -8.
 xmax = 8.
@@ -52,6 +59,7 @@ except NameError as e:
 	sys.exit()
 
 infill_path = Infill.infill(contours,'solid',LINEWIDTH,n,NOZZLEFRONT)
+Infill.cookieCutter(infill_path,contours)
 figure = pyplot.figure()
 ax = figure.add_subplot(111)
 ax.set_xlim([xmin,xmax])
@@ -86,13 +94,13 @@ for obj in new_infill:
 	if obj.isExtruding:
 		style = 'solid'
 	else:
-		style = 'solid'
+		style = ':'
 
 	if obj.type == 'line':
 		#print('line')
 		x = [obj.startPoint.X,obj.endPoint.X]
 		y = [obj.startPoint.Y,obj.endPoint.Y]
-		line = Line2D(x,y,color=c,linewidth=16,solid_capstyle='round',linestyle = style)
+		line = Line2D(x,y,color=c,linewidth=4,solid_capstyle='round',linestyle = style)
 		ax.add_line(line)
 	elif obj.type == 'arc':
 		#print('arc')
