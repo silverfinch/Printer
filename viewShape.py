@@ -7,7 +7,7 @@ figure = pyplot.figure()
 axes = mplot3d.Axes3D(figure)
 
 # Load the STL files and add the vectors to the plot
-your_mesh = mesh.Mesh.from_file('cube.stl')
+your_mesh = mesh.Mesh.from_file('Cube_and_ball.stl')
 #your_mesh.x += 97
 #your_mesh.y -= 72
 #your_mesh.z -= 20

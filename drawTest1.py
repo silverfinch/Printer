@@ -12,14 +12,14 @@ import sys
 
 dontOrder = 0
 showNormals = 0
-currentZ = .01
+currentZ = 0.5
 zIncrement = 0.000001
 my_mesh = mesh.Mesh.from_file('Cube_and_ball.stl')
-scale = 1
-my_mesh.x, my_mesh.y, my_mesh.z = my_mesh.x*scale, my_mesh.y*scale, my_mesh.z*scale
-LINEWIDTH = .05
-#my_mesh.x += 100
-#my_mesh.y -= 75
+scale = 20
+my_mesh.x, my_mesh.y, my_mesh.z = my_mesh.x*scale, my_mesh.y*scale, my_mesh.z#*scale
+LINEWIDTH = 1
+my_mesh.x += -25.6
+my_mesh.y += -25.6
 #my_mesh.z -= 20
 
 my_normals = my_mesh.normals
@@ -73,7 +73,7 @@ if dontOrder == 1:
 else:
 	if len(newLines) != 0:
 		precontour = SlicerGeometries.preContour(newLines)
-		contours = precontour.reorder()
+		contours = [precontour.reorder()[1]]
 	else:
 		print('No non-filled contours')
 	X=[]

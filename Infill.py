@@ -19,7 +19,7 @@ def infill(contours,infill_type,LINEWIDTH,n,NOZZLEFRONT):
 		arcwidths = []
 		for e in range(0,n):
 			R = max_mag
-			print(max_mag)
+#			print(max_mag)
 			theta = e*360./n
 			for i in range(0,num_infill_shells-crowded_shells):
 				R2 = R-LINEWIDTH
@@ -37,13 +37,13 @@ def infill(contours,infill_type,LINEWIDTH,n,NOZZLEFRONT):
 			crowdPoint.append(Point(R*np.cos(theta2*np.pi/180),R*np.sin(theta2*np.pi/180),0))
 			#crowding region management:
 			if e!=0:
-				infill_path.append(Line(crowdPoint[e],Point((R+LINEWIDTH*crowded_shells+8)*np.cos(theta2*np.pi/180),(R+LINEWIDTH*crowded_shells+8)*np.sin(theta2*np.pi/180),0),e,False))#increase radius by 8 to see paths clearly on graphic
+				infill_path.append(Line(crowdPoint[e],Point((R+LINEWIDTH*crowded_shells+8)*np.cos(theta2*np.pi/180),(R+LINEWIDTH*crowded_shells+8)*np.sin(theta2*np.pi/180),0),e,False,True))#increase radius by 8 to see paths clearly on graphic
 				idleR = R+LINEWIDTH*crowded_shells+8
 			for i in range(1,crowded_shells):
 				if e!=0:
 					theta=theta2
 					theta2 = theta2+360-arcwidths[i-1]
-					infill_path.append(ArcLine((0,0),idleR,theta,theta2,e,False))
+					infill_path.append(ArcLine((0,0),idleR,theta,theta2,e,False,True))
 				else:
 					R = R-LINEWIDTH
 					arcwidth = 180./np.pi*2*np.arctan2(LINEWIDTH/2.,R)
@@ -58,31 +58,31 @@ def infill(contours,infill_type,LINEWIDTH,n,NOZZLEFRONT):
 		infill_path_final = []
 		for item in infill_path:
 			if isinstance(item,ArcLine):
-				print('arc')
+#				print('arc')
 				R = item.r
 				a = 1-0.1/R
 				ang_width = 2*np.arctan2(np.sqrt(1-a**2),a)
 				theta2_selftemp = item.theta2*np.pi/180 - item.theta1*np.pi/180
 		                theta2_selftemp = (theta2_selftemp/2/np.pi-np.floor(theta2_selftemp/2/np.pi))*2*np.pi
 				n = theta2_selftemp/ang_width
-				print(n)
+#				print(n)
 				n = int(np.ceil(n))
-				print(n)
+#				print(n)
 				ang_width = theta2_selftemp/n
 				for i in range(0,n):
 					x1 = R*np.cos(item.theta1*np.pi/180+i*ang_width)
 					y1 = R*np.sin(item.theta1*np.pi/180+i*ang_width)
 					x2 = R*np.cos(item.theta1*np.pi/180+(i+1)*ang_width)
 					y2 = R*np.sin(item.theta1*np.pi/180+(i+1)*ang_width)
-					infill_path_final.append(Line(Point(x1,y1,0),Point(x2,y2,0),item.index,False))
+					infill_path_final.append(Line(Point(x1,y1,0),Point(x2,y2,0),item.index,False,item.isMove))
 			else:
 				infill_path_final.append(item)
-	print('final')
-	print(len(infill_path_final))
+#	print('final')
+#	print(len(infill_path_final))
 	return infill_path_final
 
 class ArcLine:
-	def __init__(self,hk,r,theta1,theta2,index,isExtruding,alternate=False):
+	def __init__(self,hk,r,theta1,theta2,index,isExtruding,isMove=False):
 		self.index = index
 		self.type = 'arc'
 		self.hk = hk
@@ -90,7 +90,7 @@ class ArcLine:
 		self.theta1 = (theta1/360-np.floor(theta1/360))*360
 		self.theta2 = (theta2/360-np.floor(theta2/360))*360
 		self.isExtruding = isExtruding
-		self.alternate = alternate
+		self.isMove = isMove
 
 	def lineIntersect(self,line):
 		a = line.startPoint.Y-line.endPoint.Y
@@ -151,16 +151,38 @@ class ArcLine:
 		return coords
 	
 class Line:
-	def __init__(self,startPoint,endPoint,index,isExtruding,alternate=False):
+	def __init__(self,startPoint,endPoint,index,isExtruding,isMove=False):
 		self.index = index
 		self.type = 'line'
 		self.startPoint = startPoint
 		self.endPoint = endPoint
 		self.isExtruding = isExtruding
-		self.alternate = alternate
+		self.isMove = isMove
+
+	def __eq__(self,other):
+		if self.startPoint.isEqual(other.startPoint) and self.endPoint.isEqual(other.endPoint):
+			return True
+		else:
+			return False
 
 	def lineIntersect(self,line):
 		return line.intersectsWith(self)
+
+	def direction(self):
+                vertex = np.array([self.startPoint.X,self.startPoint.Y,0])
+                endpoint = np.array([self.endPoint.X,self.endPoint.Y,0])
+		vertex = np.array([vertex[0].item(),vertex[1].item(),0])
+		endpoint = np.array([endpoint[0].item(),endpoint[1].item(),0])
+                dir = np.cross(vertex,np.subtract(endpoint,vertex))[2]
+                if dir > 0:
+                        return 1
+                elif dir < 0:
+                        return -1
+                else:
+                        return 0
+
+	def radius(self):
+		return np.sqrt(self.startPoint.X**2 + self.startPoint.Y**2)
 
 def cookieCutter(infill,contours):
 	i = len(infill)-1
@@ -169,6 +191,8 @@ def cookieCutter(infill,contours):
 		for contour in contours:
 			for line in contour.lines:
 				thing = infill[i]
+				if thing.isMove:
+					continue
 #				print('index')
 #				print(thing.index,i)
 				coords = thing.lineIntersect(line)
@@ -176,8 +200,8 @@ def cookieCutter(infill,contours):
 					if isinstance(thing,Line):
 						x = coords[0]
 						y = coords[1]
-						replace1 = Line(thing.startPoint,Point(x,y,0,True),7,thing.isExtruding)
-						replace2 = Line(Point(x,y,0,True),thing.endPoint,7,thing.isExtruding,True)
+						replace1 = Line(thing.startPoint,Point(x,y,0,True),thing.index,thing.isExtruding)
+						replace2 = Line(Point(x,y,0,True),thing.endPoint,thing.index,thing.isExtruding)
 						del infill[i]
 						infill.insert(i,replace2)
 						infill.insert(i,replace1)
@@ -186,9 +210,9 @@ def cookieCutter(infill,contours):
 						if len(coords) == 2:
 #							print('foolde dyou')
 							#if np.arctan2((np.tan(coords[0][1])-np.tan(coords[1][1]))/(1+np.tan(coords[0][1])*np.tan(coords[1][1])),1)>0:
-							replace1 = ArcLine(thing.hk,thing.r,thing.theta1,coords[0][1],7,thing.isExtruding)
-							replace2 = ArcLine(thing.hk,thing.r,coords[0][1],coords[1][1],7,thing.isExtruding,True)
-							replace3 = ArcLine(thing.hk,thing.r,coords[1][1],thing.theta2,7,thing.isExtruding,True)
+							replace1 = ArcLine(thing.hk,thing.r,thing.theta1,coords[0][1],thing.index,thing.isExtruding)
+							replace2 = ArcLine(thing.hk,thing.r,coords[0][1],coords[1][1],thing.index,thing.isExtruding)
+							replace3 = ArcLine(thing.hk,thing.r,coords[1][1],thing.theta2,thing.index,thing.isExtruding)
 							#else:
 							#	replace1 = ArcLine(thing.hk,thing.r,thing.theta1,coords[0][1],thing.index+1,thing.isExtruding)
 							#	replace2 = ArcLine(thing.hk,thing.r,coords[0][1],coords[1][1],thing.index+2,thing.isExtruding,True)
@@ -198,8 +222,8 @@ def cookieCutter(infill,contours):
 							infill.insert(i,replace2)
 							infill.insert(i,replace1)
 						else:
-							replace1 = ArcLine(thing.hk,thing.r,thing.theta1,coords[0][1],7,thing.isExtruding)
-							replace2 = ArcLine(thing.hk,thing.r,coords[0][1],thing.theta2,7,thing.isExtruding,True)
+							replace1 = ArcLine(thing.hk,thing.r,thing.theta1,coords[0][1],thing.index,thing.isExtruding)
+							replace2 = ArcLine(thing.hk,thing.r,coords[0][1],thing.theta2,thing.index,thing.isExtruding)
 							del infill[i]
 							infill.insert(i,replace2)
 							infill.insert(i,replace1)
@@ -226,6 +250,8 @@ def cookieCutter(infill,contours):
 #		item.isExtruding = doExtrude
 		#print(item.isExtruding)
 	for item in infill:
+		if item.isMove:
+			continue
 		if isinstance(item,Line):
 			midpoint = [(item.endPoint.X+item.startPoint.X)/2,(item.endPoint.Y+item.startPoint.Y)/2]
 		elif isinstance(item,ArcLine):

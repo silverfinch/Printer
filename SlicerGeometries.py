@@ -79,29 +79,34 @@ class SliceLine:
 			return 0
 	
 	def intersectsWith(self,other):
-		if self.endPoint.X != self.startPoint.X:
-			mA = (self.endPoint.Y-self.startPoint.Y)/(self.endPoint.X-self.startPoint.X)
-			bA = self.endPoint.Y-mA*self.endPoint.X
-			if other.endPoint.X != other.startPoint.X:
-				mB = (other.endPoint.Y-other.startPoint.Y)/(other.endPoint.X-other.startPoint.X)
-				bB = other.endPoint.Y-mB*other.endPoint.X
-				x = (bB-bA)/(mA-mB)
-				if (x>=self.startPoint.X and x<=self.endPoint.X) or (x<=self.startPoint.X and x>=self.endPoint.X):
-					if (x>=other.startPoint.X and x<=other.endPoint.X) or (x<=other.startPoint.X and x>=other.endPoint.X):
-						return [x,mA*x+bA]
-			else:
-				yA = mA*other.endPoint.X + bA
-				if (yA>=self.startPoint.Y and yA<=self.endPoint.Y) or (yA<=self.startPoint.Y and yA>=self.endPoint.Y):
-					if (yA>=other.startPoint.Y and yA<=other.endPoint.Y) or (yA<=other.startPoint.Y and yA>=other.endPoint.Y):
-						return [other.endPoint.X,yA]
-		elif other.endPoint.X != other.startPoint.X:
-			mB = (other.endPoint.Y-other.startPoint.Y)/(other.endPoint.X-other.startPoint.X)
-			bB = other.endPoint.Y-mB*other.endPoint.X
-			yB = mB*self.startPoint.X + bB
-			if (yB>=other.startPoint.Y and yB<=other.endPoint.Y) or (yB<=other.startPoint.Y and yB>=other.endPoint.Y):
-				return [self.endPoint.X,yB]
+		xa1 = self.startPoint.X
+                xa2 = self.endPoint.X
+                xb1 = other.startPoint.X
+                xb2 = other.endPoint.X
+                ya1 = self.startPoint.Y
+                ya2 = self.endPoint.Y
+                yb1 = other.startPoint.Y
+                yb2 = other.endPoint.Y
+                angle = np.pi/2-np.arctan2(self.endPoint.Y-self.startPoint.Y,self.endPoint.X-self.startPoint.X)
+                #added 90 degrees to make self vertical and avoid infinite slope in other line
+                mat = np.matrix([[np.cos(angle),-np.sin(angle),-xa1],[np.sin(angle),np.cos(angle),ya1],[0,0,1]])
+                va2 = np.matrix([[xa2],[ya2],[1]]) 
+                vb1 = np.matrix([[xb1],[yb1],[1]]) 
+                vb2 = np.matrix([[xb2],[yb2],[1]])
+                y = np.matmul(mat,va2)[1]
+                vb1_ = np.matmul(mat,vb1)
+                vb2_ = np.matmul(mat,vb2)
+                yint = vb1_[1]-((vb2_[1]-vb1_[1])/(vb2_[0]-vb1_[0]))*vb1_[0]
+#		print(y,yint,vb1_[0],vb2_[0])
+                if yint>=0 and yint<=y:#theoretical line intersects  
+			if (vb1_[0]<=0 and vb2_[0]>=0) or (vb1_[0]>=0 and vb2_[0]<=0):#actual line intersects
+				inter = np.matrix([[0],[yint],[1]])
+				angle = -angle
+		                mat = np.matrix([[np.cos(angle),-np.sin(angle),-xa1],[np.sin(angle),np.cos(angle),ya1],[0,0,1]])
+				intersection = np.matmul(mat,inter)
+				return [intersection[0],intersection[1]]
 		return []
-
+		
 class Point:
 	def __init__(self,X,Y,Z,atBorder=False):
 		self.X = X
@@ -113,7 +118,7 @@ class Point:
 		return hash(self.X) + hash(self.Y) + hash(self.Z)
 
 	def isEqual(self,point):
-		if (self.X == point.X and self.Y == point.Y and self.Z == point.Z):
+		if (np.abs(self.X-point.X)<0.000001 and np.abs(self.Y-point.Y)<0.000001 and np.abs(self.Z-point.Z)<0.000001):
 			return 1
 		else:
 			return 0
