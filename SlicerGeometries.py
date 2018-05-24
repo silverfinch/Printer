@@ -107,6 +107,32 @@ class SliceLine:
 				return [intersection[0],intersection[1]]
 		return []
 		
+	def intersectsWith2(self,other):
+	### added this one back since the other one seems to break the infill cookie cutting script.
+ 		if self.endPoint.X != self.startPoint.X:
+ 			mA = (self.endPoint.Y-self.startPoint.Y)/(self.endPoint.X-self.startPoint.X)
+ 			bA = self.endPoint.Y-mA*self.endPoint.X
+ 			if other.endPoint.X != other.startPoint.X:
+ 				mB = (other.endPoint.Y-other.startPoint.Y)/(other.endPoint.X-other.startPoint.X)
+ 				bB = other.endPoint.Y-mB*other.endPoint.X
+ 				x = (bB-bA)/(mA-mB)
+ 				if (x>=self.startPoint.X and x<=self.endPoint.X) or (x<=self.startPoint.X and x>=self.endPoint.X):
+ 					if (x>=other.startPoint.X and x<=other.endPoint.X) or (x<=other.startPoint.X and x>=other.endPoint.X):
+ 						return [x,mA*x+bA]
+ 			else:
+ 				yA = mA*other.endPoint.X + bA
+ 				if (yA>=self.startPoint.Y and yA<=self.endPoint.Y) or (yA<=self.startPoint.Y and yA>=self.endPoint.Y):
+ 					if (yA>=other.startPoint.Y and yA<=other.endPoint.Y) or (yA<=other.startPoint.Y and yA>=other.endPoint.Y):
+ 						return [other.endPoint.X,yA]
+ 		elif other.endPoint.X != other.startPoint.X:
+ 			mB = (other.endPoint.Y-other.startPoint.Y)/(other.endPoint.X-other.startPoint.X)
+ 			bB = other.endPoint.Y-mB*other.endPoint.X
+ 			yB = mB*self.startPoint.X + bB
+ 			if (yB>=other.startPoint.Y and yB<=other.endPoint.Y) or (yB<=other.startPoint.Y and yB>=other.endPoint.Y):
+ 				return [self.endPoint.X,yB]
+
+		return []
+
 class Point:
 	def __init__(self,X,Y,Z,atBorder=False):
 		self.X = X

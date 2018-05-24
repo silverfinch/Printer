@@ -84,7 +84,7 @@ for i in range(0,n):
 	       	        style = 'solid'
 	        else:
  		 	style = ':'
-		if True:#obj.index == 5:
+		if True:#obj.index==0:
 			alphaset = 1.
 		else:
 			alphaset = 0

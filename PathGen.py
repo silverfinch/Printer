@@ -4,6 +4,7 @@ import Infill
 from Infill import Line
 import SlicerGeometries
 import pyclipper
+from collections import OrderedDict
 
 plateRad = 1500
 n = 6
@@ -247,35 +248,46 @@ def contourPath(contours,currentZ,LINEWIDTH,NOZZLEFRONT):
 		for group in nozzle:
 			for line in group.lines:
 				line.index = group.index
+	lengths = [0 for _ in range(0,n)]
+	for j in range(0,n):
+		for group in nozzlepaths[j]:
+			lengths[j] += len(group.lines)
+		print("lines per nozzle")
+		print(lengths[j])
 #	for nozzle in nozzlegroups:
 #		for r in range(0,len(nozzle)):
 #			group = nozzle[r]
 #			for line in group.lines:
 #				line.index = r
 	finalpath = [[] for _ in range(0,n)]
+	ang_tracking = [0 for _ in range(0,n)]
 	for j in range(0,n):
 		for s in range(0,len(nozzlepaths[j])):
 			group = nozzlepaths[j][s]
 			if s==0:
 				w = np.arctan2(group.lines[0].startPoint.Y,group.lines[0].startPoint.X)
+				r1 = np.sqrt(group.lines[0].startPoint.X**2 + group.lines[0].startPoint.Y**2)
 				if w<0:
 					w+=2*np.pi
-				u = np.floor(w/(2*np.pi/n))
-               		        v = 2*np.pi/n*u
-				r1 = np.sqrt(group.lines[0].startPoint.Y**2 + group.lines[0].startPoint.X**2)
+               		        v = 2*np.pi/n*group.index
 		                if w<0:
                 		        w += 2*np.pi
 					if np.abs(w/2/np.pi-np.round(w/2/np.pi))<0.000001:
 						w = 0
                			if not np.abs(w-v)<0.00001:#if line does not come from radial border
 					print("adjf")
-					print(w,v)
+					print(group.index)
 		                        a = 1-0.1/r1
                 		        ang_width = 2*np.arctan2(np.sqrt(1-a**2),a)
+					if ang_width<0:
+						ang_width+=2*np.pi
 		                        theta2_selftemp = np.arctan2(np.cos(v)*np.sin(w)-np.sin(v)*np.cos(w),np.cos(v)*np.cos(w)+np.sin(v)*np.sin(w))
 #                		        theta2_selftemp = (theta2_selftemp/2/np.pi-np.floor(theta2_selftemp/2/np.pi))*2*np.pi
+					if theta2_selftemp<0:
+						theta2_selftemp+=2*np.pi
 		                        m = theta2_selftemp/ang_width
                 		        m = int(np.ceil(m))
+					print(theta2_selftemp)
 		                        if m!=0:
                 		                ang_width = theta2_selftemp/m#positive to join to group in CCW direction
 						prepath = []                  
@@ -289,13 +301,59 @@ def contourPath(contours,currentZ,LINEWIDTH,NOZZLEFRONT):
 			for line in group.lines:
 				finalpath[j].append(line)
 			if s<len(nozzlepaths[j])-1:
-				print("called")
-				print(len(nozzlepaths[j]))
+#				print("called")
+#				print(len(nozzlepaths[j]))
 #				finalpath[j].append(Line(nozzlepaths[j][s].lines[-1].endPoint,nozzlepaths[j][s+1].lines[0].startPoint,j,False))
-				finalpath[j] = finalpath[j] + makeSpiral(nozzlepaths[j][s],nozzlepaths[j][s+1],LINEWIDTH)
-	print("bloop")
-	for nozzle in nozzlepaths:
-		print(len(nozzle))
+				spiral = makeSpiral(nozzlepaths[j][s],nozzlepaths[j][s+1],LINEWIDTH)
+				finalpath[j] = finalpath[j] + spiral			
+		finalpath[j].insert(0,Line(SlicerGeometries.Point(plateRad*np.cos(j*2*np.pi/n),plateRad*np.sin(j*2*np.pi/n),0),finalpath[j][0].startPoint,j,False))
+	
+	for j in range(0,n):
+		a = list(OrderedDict.fromkeys(finalpath[j]))
+		finalpath[j] = a
+
+	for j in range(0,n):
+		x1 = finalpath[j][0].startPoint.X
+		y1 = finalpath[j][0].startPoint.Y
+		x2 = finalpath[j][-1].endPoint.X
+		y2 = finalpath[j][-1].endPoint.Y
+		r1 = np.sqrt(x1**2 + y1**2)
+		r2 = np.sqrt(x2**2 + y2**2)
+		theta1 = np.arctan2(y1,x1)
+		theta2 = np.arctan2(y2,x2)
+		dtheta = np.arctan2(r1*np.cos(theta1)*r2*np.sin(theta2)-r1*np.sin(theta1)*r2*np.cos(theta2),r1*np.cos(theta1)*r2*np.cos(theta2) + r1*np.sin(theta1)*r2*np.sin(theta2))
+		if dtheta<0:
+			dtheta += 2*np.pi
+		ang_tracking[j] = 2*np.pi - dtheta #gives angle needed to complete another loop
+		print("angles")
+		print(dtheta)
+
+	#now to track looping counts:
+	loops = [0 for _ in range(0,n)]
+	for j in range(0,n):
+		radial = SlicerGeometries.SliceLine([[0,0,0],[plateRad*np.cos(j*2*np.pi/n),plateRad*np.sin(j*2*np.pi/n),0]],[0,0,0])
+		for i in range(2,len(finalpath[j])):#skip first two lines since they intersect with the radius by design
+			line = finalpath[j][i]
+			x1 = line.startPoint.X
+			x2 = line.endPoint.X
+			y1 = line.startPoint.Y
+			y2 = line.endPoint.Y
+			r1 = np.sqrt(x1**2 + y1**2)
+			r2 = np.sqrt(x2**2 + y2**2)
+			theta1 = np.arctan2(y1,x1)
+			theta2 = np.arctan2(y2,x2)
+			dtheta = np.arctan2(r1*np.cos(theta1)*r2*np.sin(theta2)-r1*np.sin(theta1)*r2*np.cos(theta2),r1*np.cos(theta1)*r2*np.cos(theta2) + r1*np.sin(theta1)*r2*np.sin(theta2))
+			if not np.abs(dtheta)<0.000001:
+				if radial.intersectsWith(line):
+					if not radial.intersectsWith(finalpath[j][i-1]):
+					#this check is to prevent double-counting when the radius intersects with a vertex between two lines
+						loops[j] += 1
+			else:
+				continue#if line is radial, skip it
+	loopMax = np.max(loops) + 1
+#	print("bloop")
+#	for nozzle in nozzlepaths:
+#		print(len(nozzle))
         for i in range(0,len(contours)):
                 contour = contours[i]
                 vertices = []
@@ -319,21 +377,50 @@ def contourPath(contours,currentZ,LINEWIDTH,NOZZLEFRONT):
                         else:
                                 new_lines.append(SlicerGeometries.SliceLine([[new_vertices[i][0],new_vertices[i][1],currentZ],[new_vertices[i+1][0],new_vertices[i+1][1],currentZ]],np.array([0,0,0])))
                 infillcontours.append(SlicerGeometries.closedContour(new_lines,1))
-        infill_path = []#Infill.infill(infillcontours,'solid',LINEWIDTH,n,NOZZLEFRONT)
-#        Infill.cookieCutter(infill_path,infillcontours)
-#REMOVE INFILL FOR NOW
+        infill_path = Infill.infill(infillcontours,'solid',LINEWIDTH,n,NOZZLEFRONT)
+        Infill.cookieCutter(infill_path,infillcontours)
 	print("how long do cookies take")
 # cookies take a while, look into this
-#	infills = [[]]*n
-#	for line in infill_path:
-#		buildpath.append(line)
-#		infills[line.index].append(line)
+	infills = [[]]*n
+	for line in infill_path:
+		infills[line.index].append(line)
 
-#	for j in range(0,n):
-#		finalpath2[j].append(infills[j])
-#	return buildpath
 	for j in range(0,n):
-		print(len(finalpath[j]))
+		r1 = np.sqrt(finalpath[j][-1].endPoint.X**2 + finalpath[j][-1].endPoint.Y**2)
+		v = np.arctan2(finalpath[j][-1].endPoint.Y,finalpath[j][-1].endPoint.X)
+		if v<0:
+			v+=2*np.pi
+		a = 1-0.1/r1
+	        ang_width = 2*np.arctan2(np.sqrt(1-a**2),a)
+		if ang_width<0:
+			ang_width+=2*np.pi
+                theta2_selftemp = ang_tracking[j] + (loopMax-loops[j])*2*np.pi
+		if theta2_selftemp<0:
+			theta2_selftemp+=2*np.pi
+	        m = theta2_selftemp/ang_width
+                m = int(np.ceil(m))
+		print(theta2_selftemp)
+	        if m!=0:
+        	        ang_width = theta2_selftemp/m#positive to join to group in CCW direction
+			print("ang width")
+			print(ang_width)
+			postpath = []                  
+                	for i in range(0,m):
+				r2 = r1 + (plateRad-r1)/m
+		        	x1 = r1*np.cos(v+i*ang_width)
+                	        y1 = r1*np.sin(v+i*ang_width)
+                                x2 = r2*np.cos(v+(i+1)*ang_width)
+		                y2 = r2*np.sin(v+(i+1)*ang_width)
+				r1 = r2
+                	        postpath.append(Line(SlicerGeometries.Point(x1,y1,0),SlicerGeometries.Point(x2,y2,0),j,False))
+		print("postpaths")
+		print(len(postpath))
+		postpath.append(Line(postpath[-1].endPoint,infills[j][0].startPoint,j,False))
+		finalpath[j] = finalpath[j] + postpath
+	for j in range(0,n):
+		finalpath[j] = finalpath[j] + infills[j]
+		print("infills")
+		print(len(infills[j]))
 	return finalpath
 
 class Group:
@@ -382,8 +469,8 @@ def makeSpiral(group1,group2,LINEWIDTH):
        	                dtheta_ = LINEWIDTH/np.sqrt(B**2 + r_a**2)
                	        theta_b = theta_a+dtheta_
                        	r_b = B*dtheta_ + r_a
-			print(r_a,r_b,B)
-			print(dr,r1,r2)
+#			print(r_a,r_b,B)
+#			print(dr,r1,r2)
                         x_a = r_a*np.cos(theta_a)
        	                y_a = r_a*np.sin(theta_a)
                	        x_b = r_b*np.cos(theta_b)

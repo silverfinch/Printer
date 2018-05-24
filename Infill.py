@@ -25,6 +25,8 @@ def infill(contours,infill_type,LINEWIDTH,n,NOZZLEFRONT):
 				R2 = R-LINEWIDTH
 				arcwidth = 180./np.pi*2*np.arctan2(LINEWIDTH/2.,R)
 				theta2 = theta+(360./n-arcwidth)
+				print("where is it")
+				print(R*np.sin(theta2*np.pi/180))
 				# inwards withdrawal
 				infill_path.append(ArcLine((0,0),R,theta,theta2,e,False))
 				#creates new Arc, stops just at edge of next infill pattern
@@ -155,9 +157,26 @@ class Line:
 		self.index = index
 		self.type = 'line'
 		self.startPoint = startPoint
+		if (not isinstance(startPoint.X,float)) and (not isinstance(startPoint.X,int)):
+			startPoint.X = np.asscalar(startPoint.X)
+		if (not isinstance(startPoint.Y,float)) and (not isinstance(startPoint.Y,int)):
+			startPoint.Y = np.asscalar(startPoint.Y)
+		if (not isinstance(startPoint.Z,float)) and (not isinstance(startPoint.Z,int)):
+			startPoint.Z = np.asscalar(startPoint.Z)
+		if (not isinstance(endPoint.X,float)) and (not isinstance(endPoint.X,int)):
+			endPoint.X = np.asscalar(endPoint.X)
+		if (not isinstance(endPoint.Y,float)) and (not isinstance(endPoint.Y,int)):
+			endPoint.Y = np.asscalar(endPoint.Y)
+		if (not isinstance(endPoint.Z,float)) and (not isinstance(endPoint.Z,int)):
+			endPoint.Z = np.asscalar(endPoint.Z)
 		self.endPoint = endPoint
 		self.isExtruding = isExtruding
 		self.isMove = isMove
+#		if not isinstance(startPoint.X,int):# and isinstance(startPoint.Y,int) and isinstance(startPoint.Z,int) and isinstance(endPoint.X,int) and isinstance(endPoint.Y,int) and isinstance(endPoint.Z,int)):
+#			print(startPoint.X)
+#			startPoint.X = np.asscalar(startPoint.X)
+#			print(type(startPoint.X))
+#			raise ValueError("Found a matrix where there should have been an int")
 
 	def __eq__(self,other):
 		if self.startPoint.isEqual(other.startPoint) and self.endPoint.isEqual(other.endPoint):
@@ -165,8 +184,14 @@ class Line:
 		else:
 			return False
 
+	def __hash__(self):
+		return hash(self.startPoint) + hash(self.endPoint)
+
 	def lineIntersect(self,line):
 		return line.intersectsWith(self)
+
+	def lineIntersect2(self,line):
+		return line.intersectsWith2(self)
 
 	def direction(self):
                 vertex = np.array([self.startPoint.X,self.startPoint.Y,0])
@@ -195,7 +220,7 @@ def cookieCutter(infill,contours):
 					continue
 #				print('index')
 #				print(thing.index,i)
-				coords = thing.lineIntersect(line)
+				coords = thing.lineIntersect2(line)
 				if len(coords)!=0:
 					if isinstance(thing,Line):
 						x = coords[0]
@@ -203,6 +228,7 @@ def cookieCutter(infill,contours):
 						replace1 = Line(thing.startPoint,Point(x,y,0,True),thing.index,thing.isExtruding)
 						replace2 = Line(Point(x,y,0,True),thing.endPoint,thing.index,thing.isExtruding)
 						del infill[i]
+
 						infill.insert(i,replace2)
 						infill.insert(i,replace1)
 					if isinstance(thing,ArcLine):
@@ -267,7 +293,7 @@ def cookieCutter(infill,contours):
                 	for line in contour.lines:
                         	polygon.append([line.startPoint.X,line.startPoint.Y])
                 	path = mpltPath.Path(polygon)
-                	if (path.contains_point(midpoint)) and contour.level >= maxLevel:
+    	           	if (path.contains_point(midpoint)) and contour.level >= maxLevel:
 				maxLevel = contour.level
 				filled = True
 		count = 0
