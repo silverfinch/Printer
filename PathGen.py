@@ -6,7 +6,7 @@ import SlicerGeometries
 import pyclipper
 from collections import OrderedDict
 
-plateRad = 1500
+plateRad = 150
 n = 6
 
 def contourPath(contours,currentZ,LINEWIDTH,NOZZLEFRONT):
@@ -212,7 +212,7 @@ def contourPath(contours,currentZ,LINEWIDTH,NOZZLEFRONT):
 		while found:#will keep cycling through all sectors until there are no more lines left for that nozzle
 			found = False
 			for sector in range(0,n):#among geometric sectors of build area
-				print(found)
+#				print(found)
 				minDist = 0
 				if len(nozzlegroups[sector])==0:
 					continue
@@ -238,7 +238,7 @@ def contourPath(contours,currentZ,LINEWIDTH,NOZZLEFRONT):
 					nozzlegroups[sector].remove(groupchoice)	
 					#once the choice is made
 					nozzlepaths[Index].append(groupchoice)
-		print(len(nozzlepaths[Index]))
+#		print(len(nozzlepaths[Index]))
 #	for nozzle in nozzlegroups:
 #		print(len(nozzle))
 #		for r in range(0,len(nozzle)):
@@ -252,8 +252,8 @@ def contourPath(contours,currentZ,LINEWIDTH,NOZZLEFRONT):
 	for j in range(0,n):
 		for group in nozzlepaths[j]:
 			lengths[j] += len(group.lines)
-		print("lines per nozzle")
-		print(lengths[j])
+#		print("lines per nozzle")
+#		print(lengths[j])
 #	for nozzle in nozzlegroups:
 #		for r in range(0,len(nozzle)):
 #			group = nozzle[r]
@@ -275,8 +275,8 @@ def contourPath(contours,currentZ,LINEWIDTH,NOZZLEFRONT):
 					if np.abs(w/2/np.pi-np.round(w/2/np.pi))<0.000001:
 						w = 0
                			if not np.abs(w-v)<0.00001:#if line does not come from radial border
-					print("adjf")
-					print(group.index)
+#					print("adjf")
+#					print(group.index)
 		                        a = 1-0.1/r1
                 		        ang_width = 2*np.arctan2(np.sqrt(1-a**2),a)
 					if ang_width<0:
@@ -287,7 +287,7 @@ def contourPath(contours,currentZ,LINEWIDTH,NOZZLEFRONT):
 						theta2_selftemp+=2*np.pi
 		                        m = theta2_selftemp/ang_width
                 		        m = int(np.ceil(m))
-					print(theta2_selftemp)
+#					print(theta2_selftemp)
 		                        if m!=0:
                 		                ang_width = theta2_selftemp/m#positive to join to group in CCW direction
 						prepath = []                  
@@ -325,8 +325,8 @@ def contourPath(contours,currentZ,LINEWIDTH,NOZZLEFRONT):
 		if dtheta<0:
 			dtheta += 2*np.pi
 		ang_tracking[j] = 2*np.pi - dtheta #gives angle needed to complete another loop
-		print("angles")
-		print(dtheta)
+#		print("angles")
+#		print(dtheta)
 
 	#now to track looping counts:
 	loops = [0 for _ in range(0,n)]
@@ -399,11 +399,11 @@ def contourPath(contours,currentZ,LINEWIDTH,NOZZLEFRONT):
 			theta2_selftemp+=2*np.pi
 	        m = theta2_selftemp/ang_width
                 m = int(np.ceil(m))
-		print(theta2_selftemp)
+#		print(theta2_selftemp)
 	        if m!=0:
         	        ang_width = theta2_selftemp/m#positive to join to group in CCW direction
-			print("ang width")
-			print(ang_width)
+#			print("ang width")
+#			print(ang_width)
 			postpath = []                  
                 	for i in range(0,m):
 				r2 = r1 + (plateRad-r1)/m
@@ -413,14 +413,14 @@ def contourPath(contours,currentZ,LINEWIDTH,NOZZLEFRONT):
 		                y2 = r2*np.sin(v+(i+1)*ang_width)
 				r1 = r2
                 	        postpath.append(Line(SlicerGeometries.Point(x1,y1,0),SlicerGeometries.Point(x2,y2,0),j,False))
-		print("postpaths")
-		print(len(postpath))
+#		print("postpaths")
+#		print(len(postpath))
 		postpath.append(Line(postpath[-1].endPoint,infills[j][0].startPoint,j,False))
 		finalpath[j] = finalpath[j] + postpath
 	for j in range(0,n):
 		finalpath[j] = finalpath[j] + infills[j]
-		print("infills")
-		print(len(infills[j]))
+#		print("infills")
+#		print(len(infills[j]))
 	return finalpath
 
 class Group:

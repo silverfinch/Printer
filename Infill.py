@@ -25,8 +25,8 @@ def infill(contours,infill_type,LINEWIDTH,n,NOZZLEFRONT):
 				R2 = R-LINEWIDTH
 				arcwidth = 180./np.pi*2*np.arctan2(LINEWIDTH/2.,R)
 				theta2 = theta+(360./n-arcwidth)
-				print("where is it")
-				print(R*np.sin(theta2*np.pi/180))
+#				print("where is it")
+#				print(R*np.sin(theta2*np.pi/180))
 				# inwards withdrawal
 				infill_path.append(ArcLine((0,0),R,theta,theta2,e,False))
 				#creates new Arc, stops just at edge of next infill pattern
@@ -81,6 +81,8 @@ def infill(contours,infill_type,LINEWIDTH,n,NOZZLEFRONT):
 				infill_path_final.append(item)
 #	print('final')
 #	print(len(infill_path_final))
+	elif infill_type == "solid2":
+		return None
 	return infill_path_final
 
 class ArcLine:
@@ -281,8 +283,8 @@ def cookieCutter(infill,contours):
 		if isinstance(item,Line):
 			midpoint = [(item.endPoint.X+item.startPoint.X)/2,(item.endPoint.Y+item.startPoint.Y)/2]
 		elif isinstance(item,ArcLine):
-			if item.r>5:
-				print('here')
+#			if item.r>5:
+#				print('here')
 			midtheta = (item.theta1+item.theta2)/2
 			midpoint = [item.r*np.cos(midtheta),item.r*np.sin(midtheta)]
 		maxLevel = 0
